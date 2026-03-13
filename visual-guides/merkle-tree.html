@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>默克尔树 - 比特币区块解析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #f7931a;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        h1 {
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card h2 {
+            color: #4fbdba;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        /* 默克尔树可视化 */
+        .merkle-viz {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 30px 0;
+        }
+        
+        .tree-level {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .tree-node {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-width: 120px;
+        }
+        
+        .tree-node:hover {
+            transform: scale(1.05);
+        }
+        
+        .tree-node.root {
+            background: rgba(247, 147, 26, 0.2);
+            border: 2px solid #f7931a;
+            color: #f7931a;
+            font-weight: bold;
+        }
+        
+        .tree-node.internal {
+            background: rgba(79, 189, 186, 0.2);
+            border: 2px solid #4fbdba;
+            color: #4fbdba;
+        }
+        
+        .tree-node.leaf {
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px solid #e94560;
+            color: #e94560;
+        }
+        
+        .tree-node.highlight {
+            box-shadow: 0 0 20px currentColor;
+        }
+        
+        .node-label {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* 连接线 */
+        .connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* 交易输入区 */
+        .transaction-input {
+            margin-bottom: 30px;
+        }
+        
+        .tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .tx-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .tx-item input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #0f3460;
+            background: rgba(0,0,0,0.3);
+            color: #eaeaea;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .tx-item button {
+            padding: 10px 15px;
+            background: #e94560;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background: #f7931a;
+            border: none;
+            color: #1a1a2e;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(247, 147, 26, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #0f3460;
+            color: #eaeaea;
+        }
+        
+        /* 验证器 */
+        .verifier-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .proof-path {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .proof-node {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            max-width: 150px;
+            word-break: break-all;
+        }
+        
+        .proof-node.target {
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px solid #e94560;
+        }
+        
+        .proof-node.sibling {
+            background: rgba(79, 189, 186, 0.2);
+            border: 2px solid #4fbdba;
+        }
+        
+        .proof-arrow {
+            font-size: 20px;
+            color: #f7931a;
+        }
+        
+        .verification-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        
+        .verification-result.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.2);
+            border: 2px solid #22c55e;
+            color: #22c55e;
+        }
+        
+        .verification-result.fail {
+            display: block;
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px solid #e94560;
+            color: #e94560;
+        }
+        
+        /* 特性说明 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .feature-item {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        
+        .feature-item h4 {
+            margin-bottom: 10px;
+        }
+        
+        .feature-item p {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        /* 代码示例 */
+        .code-block {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .number { color: #79c0ff; }
+        .comment { color: #8b949e; }
+        .function { color: #d2a8ff; }
+        
+        .hint-box {
+            background: rgba(247, 147, 26, 0.1);
+            border-left: 4px solid #f7931a;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 20px 0;
+        }
+        
+        /* 动画 */
+        @keyframes nodePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(247, 147, 26, 0); }
+            50% { box-shadow: 0 0 20px 5px rgba(247, 147, 26, 0.3); }
+        }
+        
+        .calculating {
+            animation: nodePulse 1s infinite;
+        }
+        
+        /* 步骤指示器 */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #0f3460;
+            transition: all 0.3s;
+        }
+        
+        .step-dot.active {
+            background: #f7931a;
+            box-shadow: 0 0 10px #f7931a;
+        }
+        
+        .step-dot.completed {
+            background: #22c55e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+        
+        <h1>🌳 默克尔树 (Merkle Tree)</h1>
+        <p class="subtitle">理解比特币如何高效验证交易存在于区块中</p>
+        
+        <div class="card">
+            <h2>🔨 默克尔树构建器</h2>
+            <p style="color: #888; margin-bottom: 20px;">
+                输入交易数据，观察默克尔树如何逐层构建，最终生成默克尔根。
+            </p>
+            
+            <div class="transaction-input">
+                <div class="tx-list" id="txList">
+                    <div class="tx-item">
+                        <input type="text" placeholder="交易 1" value="Alice -> Bob: 1 BTC">
+                        <button onclick="removeTx(this)">删除</button>
+                    </div>
+                    <div class="tx-item">
+                        <input type="text" placeholder="交易 2" value="Bob -> Carol: 0.5 BTC">
+                        <button onclick="removeTx(this)">删除</button>
+                    </div>
+                    <div class="tx-item">
+                        <input type="text" placeholder="交易 3" value="Carol -> Dave: 0.3 BTC">
+                        <button onclick="removeTx(this)">删除</button>
+                    </div>
+                    <div class="tx-item">
+                        <input type="text" placeholder="交易 4" value="Dave -> Alice: 0.2 BTC">
+                        <button onclick="removeTx(this)">删除</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="addTx()">+ 添加交易</button>
+                    <button class="btn" onclick="buildMerkleTree()">构建默克尔树</button>
+                </div>
+            </div>
+            
+            <div class="step-indicator" id="stepIndicator" style="display: none;">
+                <div class="step-item">
+                    <div class="step-dot" id="step1"></div>
+                    <span>哈希交易</span>
+                </div>
+                <div class="step-item">
+                    <div class="step-dot" id="step2"></div>
+                    <span>两两配对</span>
+                </div>
+                <div class="step-item">
+                    <div class="step-dot" id="step3"></div>
+                    <span>计算父节点</span>
+                </div>
+                <div class="step-item">
+                    <div class="step-dot" id="step4"></div>
+                    <span>得到根哈希</span>
+                </div>
+            </div>
+            
+            <div class="merkle-viz" id="merkleViz" style="display: none;">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>✅ SPV 验证演示</h2>
+            <p style="color: #888; margin-bottom: 20px;">
+                轻节点如何仅通过区块头和少量数据验证交易？
+            </p>
+            
+            <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <p style="font-size: 14px; color: #aaa; margin-bottom: 15px;">
+                    <strong>场景：</strong>你是轻节点（SPV 钱包），只想验证 <span style="color: #e94560;">"Tx1: Alice->Bob"</span> 是否包含在区块中，
+                    而不想下载整个区块的所有交易。
+                </p>
+                
+                <div class="proof-path" id="proofPath" style="display: none;">
+                    <!-- 动态生成 -->
+                </div>
+                
+                <div class="verification-result" id="verifyResult">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+            
+            <button class="btn" onclick="demonstrateSPV()">演示 SPV 验证</button>
+        </div>
+        
+        <div class="card">
+            <h2>📖 默克尔树特性</h2>
+            <div class="features-grid">
+                <div class="feature-item" style="border-color: #4fbdba;">
+                    <h4 style="color: #4fbdba;">🎯 数据完整性</h4>
+                    <p>任何交易的修改都会导致默克尔根变化，从而被立即发现。</p>
+                </div>
+                <div class="feature-item" style="border-color: #f7931a;">
+                    <h4 style="color: #f7931a;">⚡ 高效验证</h4>
+                    <p>轻节点只需 O(log n) 的数据即可验证交易，而非下载全部交易。</p>
+                </div>
+                <div class="feature-item" style="border-color: #e94560;">
+                    <h4 style="color: #e94560;">🔒 安全性</h4>
+                    <p>哈希函数的不可逆性确保了无法伪造证明路径。</p>
+                </div>
+                <div class="feature-item" style="border-color: #a855f7;">
+                    <h4 style="color: #a855f7;">📦 节省空间</h4>
+                    <p>区块头只需 32 字节存储默克尔根，无论区块中有多少交易。</p>
+                </div>
+            </div>
+            
+            <div class="hint-box" style="margin-top: 20px;">
+                <strong>💡 为什么比特币需要默克尔树？</strong><br>
+                如果没有默克尔树，轻节点要验证一笔交易，必须下载整个区块的所有交易（可能几 MB 到几 GB）。
+                有了默克尔树，轻节点只需下载 80 字节的区块头 + 几百字节的证明路径！
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>💻 代码实现</h2>
+            
+            <h3 style="color: #f7931a; margin: 20px 0 10px 0;">Python</h3>
+            <div class="code-block">
+                <code>
+<span class="keyword">import</span> hashlib
+
+<span class="keyword">def</span> <span class="function">double_sha256</span>(data):
+    <span class="string">"""双 SHA256 哈希"""</span>
+    <span class="keyword">return</span> hashlib.sha256(hashlib.sha256(data).digest()).digest()
+
+<span class="keyword">def</span> <span class="function">calculate_merkle_root</span>(tx_hashes):
+    <span class="string">"""
+    计算默克尔根
+    tx_hashes: 交易哈希列表（字节串列表）
+    """</span>
+    <span class="keyword">if</span> <span class="function">len</span>(tx_hashes) == <span class="number">0</span>:
+        <span class="keyword">return</span> <span class="function">bytes</span>(<span class="number">32</span>)
+    
+    <span class="comment"># 逐层计算</span>
+    <span class="keyword">while</span> <span class="function">len</span>(tx_hashes) > <span class="number">1</span>:
+        <span class="comment"># 如果数量是奇数，复制最后一个</span>
+        <span class="keyword">if</span> <span class="function">len</span>(tx_hashes) % <span class="number">2</span> == <span class="number">1</span>:
+            tx_hashes.append(tx_hashes[-<span class="number">1</span>])
+        
+        <span class="comment"># 两两配对哈希</span>
+        new_level = []
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">0</span>, <span class="function">len</span>(tx_hashes), <span class="number">2</span>):
+            combined = tx_hashes[i] + tx_hashes[i+<span class="number">1</span>]
+            new_level.append(double_sha256(combined))
+        
+        tx_hashes = new_level
+    
+    <span class="keyword">return</span> tx_hashes[<span class="number">0</span>]
+
+<span class="comment"># SPV 验证：验证交易是否在区块中</span>
+<span class="keyword">def</span> <span class="function">verify_merkle_proof</span>(tx_hash, merkle_root, proof_path):
+    <span class="string">"""
+    验证默克尔证明
+    proof_path: [(sibling_hash, is_left), ...]
+    """</span>
+    current_hash = tx_hash
+    
+    <span class="keyword">for</span> sibling_hash, is_left <span class="keyword">in</span> proof_path:
+        <span class="keyword">if</span> is_left:
+            <span class="comment"># 兄弟节点在左边</span>
+            current_hash = double_sha256(sibling_hash + current_hash)
+        <span class="keyword">else</span>:
+            <span class="comment"># 兄弟节点在右边</span>
+            current_hash = double_sha256(current_hash + sibling_hash)
+    
+    <span class="keyword">return</span> current_hash == merkle_root
+                </code>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 简化的哈希函数（用于演示）
+        function mockHash(data) {
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            // 转换为看起来像 SHA256 的十六进制字符串
+            const hex = Math.abs(hash).toString(16).padStart(64, '0');
+            return hex.substring(0, 16) + '...';
+        }
+        
+        // 添加交易输入
+        function addTx() {
+            const txList = document.getElementById('txList');
+            const txCount = txList.children.length + 1;
+            
+            const txItem = document.createElement('div');
+            txItem.className = 'tx-item';
+            txItem.innerHTML = `
+                <input type="text" placeholder="交易 ${txCount}" value="交易 ${txCount}">
+                <button onclick="removeTx(this)">删除</button>
+            `;
+            txList.appendChild(txItem);
+        }
+        
+        // 删除交易
+        function removeTx(btn) {
+            const txList = document.getElementById('txList');
+            if (txList.children.length > 1) {
+                btn.parentElement.remove();
+            }
+        }
+        
+        // 获取所有交易数据
+        function getTransactions() {
+            const inputs = document.querySelectorAll('#txList input');
+            return Array.from(inputs).map(input => input.value);
+        }
+        
+        // 构建默克尔树
+        async function buildMerkleTree() {
+            const txs = getTransactions();
+            const viz = document.getElementById('merkleViz');
+            const indicator = document.getElementById('stepIndicator');
+            
+            viz.style.display = 'flex';
+            indicator.style.display = 'flex';
+            viz.innerHTML = '';
+            
+            // 步骤 1: 哈希交易
+            document.getElementById('step1').classList.add('active');
+            await sleep(500);
+            
+            // 计算叶子节点哈希
+            let currentLevel = txs.map((tx, i) => ({
+                hash: mockHash(tx),
+                label: `Tx${i+1}`,
+                type: 'leaf'
+            }));
+            
+            renderLevel(currentLevel, viz);
+            document.getElementById('step1').classList.add('completed');
+            await sleep(1000);
+            
+            // 逐层构建
+            let levelNum = 1;
+            while (currentLevel.length > 1) {
+                document.getElementById('step2').classList.add('active');
+                await sleep(500);
+                
+                // 如果数量是奇数，复制最后一个
+                if (currentLevel.length % 2 === 1) {
+                    currentLevel.push({...currentLevel[currentLevel.length - 1]});
+                }
+                
+                document.getElementById('step2').classList.add('completed');
+                document.getElementById('step3').classList.add('active');
+                await sleep(500);
+                
+                // 计算父节点
+                const nextLevel = [];
+                for (let i = 0; i < currentLevel.length; i += 2) {
+                    const combined = currentLevel[i].hash + currentLevel[i+1].hash;
+                    nextLevel.push({
+                        hash: mockHash(combined),
+                        label: `Hash${levelNum}-${Math.floor(i/2)+1}`,
+                        type: 'internal',
+                        children: [currentLevel[i], currentLevel[i+1]]
+                    });
+                }
+                
+                currentLevel = nextLevel;
+                levelNum++;
+                
+                renderLevel(currentLevel, viz);
+                await sleep(1000);
+                
+                document.getElementById('step3').classList.remove('active');
+            }
+            
+            // 标记根节点
+            currentLevel[0].type = 'root';
+            currentLevel[0].label = 'Merkle Root';
+            renderLevel(currentLevel, viz);
+            
+            document.getElementById('step4').classList.add('completed');
+        }
+        
+        // 渲染一层节点
+        function renderLevel(nodes, container) {
+            const level = document.createElement('div');
+            level.className = 'tree-level';
+            
+            nodes.forEach(node => {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `tree-node ${node.type}`;
+                nodeEl.innerHTML = `
+                    <div>${node.hash}</div>
+                    <div class="node-label">${node.label}</div>
+                `;
+                level.appendChild(nodeEl);
+            });
+            
+            container.appendChild(level);
+        }
+        
+        // SPV 验证演示
+        function demonstrateSPV() {
+            const proofPath = document.getElementById('proofPath');
+            const result = document.getElementById('verifyResult');
+            
+            proofPath.style.display = 'flex';
+            proofPath.innerHTML = `
+                <div class="proof-node target">
+                    <strong>目标交易</strong><br>
+                    Tx1: Alice->Bob<br>
+                    <span style="color: #888;">a3f2c1d8...</span>
+                </div>
+                <div class="proof-arrow">+</div>
+                <div class="proof-node sibling">
+                    <strong>兄弟节点</strong><br>
+                    Tx2: Bob->Carol<br>
+                    <span style="color: #888;">b7e5a9c2...</span>
+                </div>
+                <div class="proof-arrow">↓</div>
+                <div class="proof-node sibling">
+                    <strong>路径节点</strong><br>
+                    Hash(Tx3+Tx4)<br>
+                    <span style="color: #888;">d9f4e3b1...</span>
+                </div>
+                <div class="proof-arrow">=</div>
+                <div class="proof-node" style="background: rgba(247, 147, 26, 0.2); border: 2px solid #f7931a;">
+                    <strong>默克尔根</strong><br>
+                    4a5e1e4b...<br>
+                    <span style="color: #888;">(来自区块头)</span>
+                </div>
+            `;
+            
+            result.className = 'verification-result success';
+            result.innerHTML = `
+                <strong>✅ 验证成功！</strong><br>
+                计算结果与区块头中的默克尔根匹配。<br>
+                <span style="font-size: 14px;">Tx1 确实存在于该区块中，无需下载其他交易！</span>
+            `;
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

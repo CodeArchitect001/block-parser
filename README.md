@@ -6,6 +6,13 @@
 
 - 笔记：[02-区块链基础概念](../../../../03-钱包开发/01-核心原理/02-区块链基础概念.md#项目-3区块头解析器)
 - 阶段：钱包开发 / 核心原理 / 项目 3
+- 📚 **交互式概念指南**：[visual-guides/index.html](./visual-guides/index.html)（推荐先阅读）
+  - 📦 [区块头结构](./visual-guides/block-header.html)
+  - 🔄 [字节序转换](./visual-guides/endianness.html)
+  - 🔐 [双 SHA256 哈希](./visual-guides/sha256.html)
+  - ⛰️ [难度目标](./visual-guides/difficulty.html)
+  - ⛏️ [PoW 挖矿模拟](./visual-guides/mining.html)
+  - 🌳 [默克尔树](./visual-guides/merkle-tree.html)
 
 ## 项目目标
 
