@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>难度目标 - 比特币区块解析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #f7931a;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        h1 {
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card h2 {
+            color: #4fbdba;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        /* 难度可视化 */
+        .difficulty-visual {
+            margin: 30px 0;
+        }
+        
+        .target-range {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .target-bar-container {
+            height: 60px;
+            background: #0f3460;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .target-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4fbdba, #f7931a);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .target-bar::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+        
+        .target-value-display {
+            text-align: center;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .target-value-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .target-value-hex {
+            font-size: 16px;
+            color: #f7931a;
+            word-break: break-all;
+        }
+        
+        /* 滑块控制 */
+        .slider-control {
+            margin: 30px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .slider-label span {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #0f3460;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #f7931a;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(247, 147, 26, 0.5);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #f7931a;
+            cursor: pointer;
+            border: none;
+        }
+        
+        /* Bits 解析器 */
+        .bits-parser {
+            margin-top: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #0f3460;
+            background: rgba(0,0,0,0.3);
+            color: #eaeaea;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #f7931a;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            background: #f7931a;
+            border: none;
+            color: #1a1a2e;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(247, 147, 26, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #0f3460;
+            color: #eaeaea;
+        }
+        
+        /* Bits 结构可视化 */
+        .bits-structure {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .bits-part {
+            text-align: center;
+        }
+        
+        .bits-box {
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+        
+        .bits-coefficient {
+            background: rgba(79, 189, 186, 0.2);
+            border: 2px solid #4fbdba;
+        }
+        
+        .bits-exponent {
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px solid #e94560;
+            width: 80px;
+        }
+        
+        .bits-label {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .bits-operator {
+            font-size: 24px;
+            color: #f7931a;
+        }
+        
+        /* 结果展示 */
+        .result-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        
+        .result-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            color: #4fbdba;
+        }
+        
+        /* 难度比较 */
+        .difficulty-compare {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .difficulty-compare {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .compare-card {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .compare-card:hover, .compare-card.active {
+            border-color: #f7931a;
+            background: rgba(247, 147, 26, 0.1);
+        }
+        
+        .compare-card h4 {
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .compare-card .bits-value {
+            font-family: monospace;
+            font-size: 14px;
+            color: #4fbdba;
+            margin: 10px 0;
+        }
+        
+        .compare-card .difficulty-desc {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* 代码示例 */
+        .code-block {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .number { color: #79c0ff; }
+        .comment { color: #8b949e; }
+        .function { color: #d2a8ff; }
+        
+        .hint-box {
+            background: rgba(247, 147, 26, 0.1);
+            border-left: 4px solid #f7931a;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 20px 0;
+        }
+        
+        .formula-box {
+            background: rgba(79, 189, 186, 0.1);
+            border: 2px solid #4fbdba;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .formula {
+            font-size: 18px;
+            color: #4fbdba;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+        
+        <h1>⛰️ 难度目标 (Difficulty Target)</h1>
+        <p class="subtitle">理解比特币的 Bits 字段和难度目标计算</p>
+        
+        <div class="card">
+            <h2>🎯 难度目标可视化</h2>
+            <p style="color: #888; margin-bottom: 20px;">
+                区块哈希（作为大整数）必须 <strong style="color: #f7931a;">小于</strong> 目标值才有效。
+                目标值越小，挖矿难度越大。
+            </p>
+            
+            <div class="difficulty-visual">
+                <div class="target-range">
+                    <div class="range-labels">
+                        <span>0 (最容易)</span>
+                        <span style="color: #f7931a;">目标值</span>
+                        <span>2²⁵⁶-1 (最难)</span>
+                    </div>
+                    <div class="target-bar-container">
+                        <div class="target-bar" id="targetBar" style="width: 50%;"></div>
+                    </div>
+                    
+                    <div class="target-value-display">
+                        <div class="target-value-label">当前目标值 (十六进制)</div>
+                        <div class="target-value-hex" id="targetHex">
+                            00000000ffff0000000000000000000000000000000000000000000000000000
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="slider-control">
+                    <div class="slider-label">
+                        <span>简单 (大目标值)</span>
+                        <span id="difficultyLabel" style="color: #f7931a; font-weight: bold;">中等难度</span>
+                        <span>困难 (小目标值)</span>
+                    </div>
+                    <input type="range" min="1" max="100" value="50" id="difficultySlider" oninput="updateDifficulty(this.value)">
+                </div>
+                
+                <div class="hint-box">
+                    <strong>💡 挖矿规则：</strong><br>
+                    hash(block_header) &lt; target<br><br>
+                    目标值越小，满足条件的哈希就越少，找到有效 Nonce 所需的计算量就越大。
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🔧 Bits 解析器</h2>
+            <p style="color: #888; margin-bottom: 20px;">
+                Bits 是难度目标的紧凑表示（4 字节），需要展开成 32 字节的目标值。
+            </p>
+            
+            <div class="formula-box">
+                <div style="color: #888; margin-bottom: 10px;">转换公式</div>
+                <div class="formula">Target = Coefficient × 256^(Exponent-3)</div>
+                <div style="color: #888; margin-top: 10px; font-size: 12px;">
+                    Bits 格式: [Coefficient: 3 bytes][Exponent: 1 byte]
+                </div>
+            </div>
+            
+            <div class="bits-parser">
+                <div class="input-group">
+                    <label>输入 Bits 值（十六进制，4 字节）</label>
+                    <input type="text" id="bitsInput" placeholder="例如: 1d00ffff" value="1d00ffff">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn" onclick="parseBits()">解析 Bits</button>
+                    <button class="btn btn-secondary" onclick="setGenesisBits()">创世区块</button>
+                    <button class="btn btn-secondary" onclick="setCurrentBits()">当前难度</button>
+                </div>
+                
+                <div class="bits-structure" id="bitsStructure">
+                    <div class="bits-part">
+                        <div class="bits-box bits-coefficient" id="coefficientBox">00ffff</div>
+                        <div class="bits-label">系数 (3 bytes)<br>低位在前</div>
+                    </div>
+                    <div class="bits-operator">×</div>
+                    <div class="bits-part">
+                        <div class="bits-box bits-exponent" id="exponentBox">1d</div>
+                        <div class="bits-label">指数 (1 byte)<br>256^(29-3)</div>
+                    </div>
+                    <div class="bits-operator">=</div>
+                    <div class="bits-part">
+                        <div class="bits-box" style="background: rgba(247, 147, 26, 0.2); border-color: #f7931a;">
+                            <span id="calculationResult">目标值</span>
+                        </div>
+                        <div class="bits-label">Target</div>
+                    </div>
+                </div>
+                
+                <div class="result-box" id="parseResult" style="display: none;">
+                    <div class="result-item">
+                        <div class="result-label">系数 (Coefficient) - 小端序解析</div>
+                        <div class="result-value" id="coefficientResult"></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">指数 (Exponent)</div>
+                        <div class="result-value" id="exponentResult"></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">展开后的目标值 (32 bytes)</div>
+                        <div class="result-value" id="targetResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📊 难度对比</h2>
+            <p style="color: #888; margin-bottom: 15px;">点击卡片查看不同难度级别的 Bits 值</p>
+            
+            <div class="difficulty-compare">
+                <div class="compare-card" onclick="setBits('1d00ffff')">
+                    <h4>创世区块</h4>
+                    <div class="bits-value">0x1d00ffff</div>
+                    <div class="difficulty-desc">最低难度<br>最容易挖矿</div>
+                </div>
+                <div class="compare-card" onclick="setBits('1b0404cb')">
+                    <h4>早期区块</h4>
+                    <div class="bits-value">0x1b0404cb</div>
+                    <div class="difficulty-desc">难度较低<br>CPU 可挖</div>
+                </div>
+                <div class="compare-card" onclick="setBits('170538c8')">
+                    <h4>当前难度</h4>
+                    <div class="bits-value">0x170538c8</div>
+                    <div class="difficulty-desc">极高难度<br>需要 ASIC</div>
+                </div>
+            </div>
+            
+            <div class="hint-box" style="margin-top: 20px;">
+                <strong>📈 难度调整：</strong><br>
+                比特币每 2016 个区块（约 2 周）调整一次难度，使平均出块时间保持在 10 分钟左右。
+                如果算力增加，难度会相应提高。
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>💻 代码实现</h2>
+            
+            <h3 style="color: #f7931a; margin: 20px 0 10px 0;">Python</h3>
+            <div class="code-block">
+                <code>
+<span class="keyword">def</span> <span class="function">bits_to_target</span>(bits):
+    <span class="string">"""
+    将 compact bits 转换为 256 位目标值
+    bits: 4 字节，格式为 [系数 3 字节][指数 1 字节]
+    """</span>
+    <span class="comment"># 指数是最后一个字节</span>
+    exponent = bits[-<span class="number">1</span>]
+    
+    <span class="comment"># 系数是前 3 字节（小端序）</span>
+    coefficient = <span class="function">int</span>.from_bytes(bits[:<span class="number">3</span>], <span class="string">'little'</span>)
+    
+    <span class="comment"># 计算目标值</span>
+    target = coefficient * (<span class="number">256</span> ** (exponent - <span class="number">3</span>))
+    
+    <span class="keyword">return</span> target
+
+<span class="keyword">def</span> <span class="function">target_to_bits</span>(target):
+    <span class="string">"""将目标值转换回 compact bits"""</span>
+    <span class="comment"># 转换为十六进制字符串</span>
+    hex_str = <span class="function">format</span>(target, <span class="string">'064x'</span>)
+    
+    <span class="comment"># 找到第一个非零字节</span>
+    hex_str = hex_str.lstrip(<span class="string">'0'</span>)
+    <span class="keyword">if</span> <span class="function">len</span>(hex_str) <= <span class="number">6</span>:
+        hex_str = hex_str.zfill(<span class="number">6</span>)
+    
+    <span class="comment"># 提取系数和指数</span>
+    coefficient = <span class="function">int</span>(hex_str[:<span class="number">6</span>], <span class="number">16</span>)
+    exponent = (<span class="function">len</span>(hex_str) + <span class="number">1</span>) // <span class="number">2</span>
+    
+    <span class="comment"># 打包成 bits</span>
+    <span class="keyword">return</span> coefficient.to_bytes(<span class="number">3</span>, <span class="string">'little'</span>) + bytes([exponent])
+
+<span class="comment"># 验证 PoW</span>
+<span class="keyword">def</span> <span class="function">validate_pow</span>(block_hash, target):
+    <span class="string">"""验证区块哈希是否满足难度目标"""</span>
+    hash_int = <span class="function">int</span>.from_bytes(block_hash, <span class="string">'big'</span>)
+    <span class="keyword">return</span> hash_int < target
+                </code>
+            </div>
+            
+            <h3 style="color: #f7931a; margin: 20px 0 10px 0;">JavaScript</h3>
+            <div class="code-block">
+                <code>
+<span class="keyword">function</span> <span class="function">bitsToTarget</span>(bits) {
+    <span class="comment">// bits 是 Uint8Array (4 bytes)</span>
+    <span class="keyword">const</span> exponent = bits[<span class="number">3</span>];
+    <span class="keyword">const</span> coefficient = bits[<span class="number">0</span>] + (bits[<span class="number">1</span>] << <span class="number">8</span>) + (bits[<span class="number">2</span>] << <span class="number">16</span>);
+    
+    <span class="comment">// 使用 BigInt 计算大数</span>
+    <span class="keyword">const</span> target = <span class="function">BigInt</span>(coefficient) * (<span class="function">BigInt</span>(<span class="number">256</span>) ** <span class="function">BigInt</span>(exponent - <span class="number">3</span>));
+    <span class="keyword">return</span> target;
+}
+
+<span class="keyword">function</span> <span class="function">validatePoW</span>(blockHash, target) {
+    <span class="comment">// blockHash 是 Uint8Array (32 bytes)</span>
+    <span class="keyword">const</span> hashHex = Array.from(blockHash)
+        .map(b => b.toString(<span class="number">16</span>).padStart(<span class="number">2</span>, <span class="string">'0'</span>))
+        .join(<span class="string">''</span>);
+    <span class="keyword">const</span> hashInt = <span class="function">BigInt</span>(<span class="string">'0x'</span> + hashHex);
+    
+    <span class="keyword">return</span> hashInt < target;
+}
+                </code>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 更新难度可视化
+        function updateDifficulty(value) {
+            const bar = document.getElementById('targetBar');
+            const label = document.getElementById('difficultyLabel');
+            const targetHex = document.getElementById('targetHex');
+            
+            // 反转：滑块值越大，目标值越小（难度越高）
+            const targetWidth = 101 - value;
+            bar.style.width = targetWidth + '%';
+            
+            // 更新标签
+            if (value < 20) {
+                label.textContent = '超简单（测试网）';
+                label.style.color = '#22c55e';
+            } else if (value < 40) {
+                label.textContent = '简单';
+                label.style.color = '#4fbdba';
+            } else if (value < 60) {
+                label.textContent = '中等难度';
+                label.style.color = '#f7931a';
+            } else if (value < 80) {
+                label.textContent = '困难';
+                label.style.color = '#e94560';
+            } else {
+                label.textContent = '极难（主网当前难度）';
+                label.style.color = '#dc2626';
+            }
+            
+            // 生成模拟的目标值
+            const zeros = Math.floor((value / 100) * 60); // 前导零数量
+            const hex = '0'.repeat(zeros) + 'f'.repeat(64 - zeros);
+            targetHex.textContent = hex;
+        }
+        
+        // 解析 Bits
+        function parseBits() {
+            const input = document.getElementById('bitsInput').value.replace(/\s/g, '');
+            
+            if (!input || input.length !== 8) {
+                alert('请输入 4 字节 (8 个十六进制字符) 的 Bits 值');
+                return;
+            }
+            
+            try {
+                // 解析系数（前 3 字节，小端序）
+                const coefficientHex = input.substring(0, 6);
+                const coefficientBytes = coefficientHex.match(/.{2}/g).reverse(); // 小端序翻转
+                const coefficient = parseInt(coefficientBytes.join(''), 16);
+                
+                // 解析指数（最后 1 字节）
+                const exponent = parseInt(input.substring(6, 8), 16);
+                
+                // 计算目标值
+                const target = BigInt(coefficient) * (BigInt(256) ** BigInt(exponent - 3));
+                
+                // 格式化目标值为 64 位十六进制
+                let targetHex = target.toString(16).padStart(64, '0');
+                
+                // 显示结果
+                document.getElementById('parseResult').style.display = 'block';
+                document.getElementById('coefficientResult').innerHTML = 
+                    `十六进制: 0x${coefficient.toString(16)}<br>十进制: ${coefficient}`;
+                document.getElementById('exponentResult').innerHTML = 
+                    `十六进制: 0x${exponent.toString(16)}<br>十进制: ${exponent}<br>计算: 256^(${exponent}-3) = 256^${exponent-3}`;
+                document.getElementById('targetResult').textContent = targetHex;
+                
+                // 更新可视化
+                document.getElementById('coefficientBox').textContent = coefficientHex;
+                document.getElementById('exponentBox').textContent = input.substring(6, 8);
+                
+            } catch (e) {
+                alert('解析错误: ' + e.message);
+            }
+        }
+        
+        // 设置创世区块 Bits
+        function setGenesisBits() {
+            document.getElementById('bitsInput').value = '1d00ffff';
+            parseBits();
+        }
+        
+        // 设置当前难度
+        function setCurrentBits() {
+            document.getElementById('bitsInput').value = '170538c8';
+            parseBits();
+        }
+        
+        // 设置 Bits 值
+        function setBits(bits) {
+            document.getElementById('bitsInput').value = bits;
+            parseBits();
+            
+            // 高亮选中的卡片
+            document.querySelectorAll('.compare-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+        
+        // 页面加载时解析默认 Bits
+        window.onload = () => {
+            parseBits();
+        };
+    </script>
+</body>
+</html>

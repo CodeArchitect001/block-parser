@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoW 挖矿模拟 - 比特币区块解析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #f7931a;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        h1 {
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card h2 {
+            color: #4fbdba;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        /* 挖矿模拟器 */
+        .mining-simulator {
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f7931a;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stat-value.success {
+            color: #22c55e;
+        }
+        
+        /* 挖矿可视化区域 */
+        .mining-visual {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .block-representation {
+            background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+            border: 3px solid #f7931a;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        
+        .block-header {
+            text-align: left;
+        }
+        
+        .block-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .block-field:last-child {
+            border-bottom: none;
+        }
+        
+        .field-name {
+            color: #888;
+        }
+        
+        .field-value {
+            color: #4fbdba;
+        }
+        
+        .field-value.nonce {
+            color: #f7931a;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .nonce-indicator {
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e94560;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .hash-display {
+            margin-top: 30px;
+        }
+        
+        .hash-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        
+        .hash-value {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            padding: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            word-break: break-all;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hash-value.calculating {
+            color: #666;
+        }
+        
+        .hash-value.checking {
+            color: #f7931a;
+        }
+        
+        .hash-value.success {
+            color: #22c55e;
+            border: 2px solid #22c55e;
+            animation: successPulse 0.5s;
+        }
+        
+        .hash-value.fail {
+            color: #e94560;
+            opacity: 0.7;
+        }
+        
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        /* 难度条 */
+        .difficulty-bar {
+            margin: 30px 0;
+        }
+        
+        .difficulty-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .target-line-container {
+            height: 40px;
+            background: #0f3460;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .target-line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: rgba(79, 189, 186, 0.2);
+            border-right: 3px solid #4fbdba;
+            transition: width 0.3s;
+        }
+        
+        .target-label {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #4fbdba;
+        }
+        
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-start {
+            background: #22c55e;
+            color: #1a1a2e;
+        }
+        
+        .btn-stop {
+            background: #e94560;
+            color: white;
+        }
+        
+        .btn-reset {
+            background: #0f3460;
+            color: #eaeaea;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 难度设置 */
+        .difficulty-settings {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .setting-label {
+            width: 100px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .setting-control {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #0f3460;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f7931a;
+            cursor: pointer;
+        }
+        
+        .speed-options {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .speed-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .speed-btn:hover, .speed-btn.active {
+            background: #f7931a;
+            color: #1a1a2e;
+            border-color: #f7931a;
+        }
+        
+        /* 原理说明 */
+        .principle-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .principle-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .step-card {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: #f7931a;
+            color: #1a1a2e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 auto 15px;
+        }
+        
+        .step-card h4 {
+            color: #4fbdba;
+            margin-bottom: 10px;
+        }
+        
+        .step-card p {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        /* 代码示例 */
+        .code-block {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .number { color: #79c0ff; }
+        .comment { color: #8b949e; }
+        .function { color: #d2a8ff; }
+        
+        .hint-box {
+            background: rgba(247, 147, 26, 0.1);
+            border-left: 4px solid #f7931a;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 20px 0;
+        }
+        
+        /* 结果消息 */
+        .result-message {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            display: none;
+        }
+        
+        .result-message.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.2);
+            border: 2px solid #22c55e;
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+        
+        <h1>⛏️ PoW 挖矿模拟器</h1>
+        <p class="subtitle">体验工作量证明过程，理解矿工如何寻找有效区块</p>
+        
+        <div class="card">
+            <h2>🎮 挖矿模拟器</h2>
+            <div class="mining-simulator">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">当前 Nonce</div>
+                        <div class="stat-value" id="statNonce">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">尝试次数</div>
+                        <div class="stat-value" id="statTries">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">哈希/秒</div>
+                        <div class="stat-value" id="statHps">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">状态</div>
+                        <div class="stat-value" id="statStatus">⏹️ 停止</div>
+                    </div>
+                </div>
+                
+                <div class="mining-visual">
+                    <div class="block-representation">
+                        <div class="block-header">
+                            <div class="block-field">
+                                <span class="field-name">Version:</span>
+                                <span class="field-value">0x20000000</span>
+                            </div>
+                            <div class="block-field">
+                                <span class="field-name">PrevHash:</span>
+                                <span class="field-value">0000...0000</span>
+                            </div>
+                            <div class="block-field">
+                                <span class="field-name">MerkleRoot:</span>
+                                <span class="field-value">4a5e...5e4a</span>
+                            </div>
+                            <div class="block-field">
+                                <span class="field-name">Timestamp:</span>
+                                <span class="field-value">1231006505</span>
+                            </div>
+                            <div class="block-field">
+                                <span class="field-name">Bits:</span>
+                                <span class="field-value">0x1d00ffff</span>
+                            </div>
+                            <div class="block-field">
+                                <span class="field-name">Nonce:</span>
+                                <span class="field-value nonce" id="nonceDisplay">2083236893</span>
+                            </div>
+                        </div>
+                        <div class="nonce-indicator" id="nonceIndicator" style="display: none;">
+                            🔍 挖矿中...
+                        </div>
+                    </div>
+                    
+                    <div class="difficulty-bar">
+                        <div class="difficulty-labels">
+                            <span>0 (容易)</span>
+                            <span>难度目标</span>
+                            <span>2²⁵⁶ (困难)</span>
+                        </div>
+                        <div class="target-line-container">
+                            <div class="target-line" id="targetLine" style="width: 30%;"></div>
+                            <div class="target-label">Target</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hash-display">
+                        <div class="hash-label">区块哈希 (双 SHA256)</div>
+                        <div class="hash-value calculating" id="hashDisplay">
+                            点击"开始挖矿"开始计算...
+                        </div>
+                    </div>
+                    
+                    <div class="result-message success" id="successMessage">
+                        🎉 恭喜！找到有效区块！<br>
+                        <span style="font-size: 14px;">Hash &lt; Target，满足难度目标</span>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-start" id="startBtn" onclick="toggleMining()">开始挖矿</button>
+                    <button class="btn btn-reset" onclick="resetMining()">重置</button>
+                </div>
+                
+                <div class="difficulty-settings">
+                    <h3 style="color: #4fbdba; margin-bottom: 15px;">⚙️ 难度设置</h3>
+                    
+                    <div class="setting-row">
+                        <span class="setting-label">难度级别:</span>
+                        <div class="setting-control">
+                            <input type="range" min="1" max="100" value="30" id="difficultySlider" oninput="updateDifficulty(this.value)">
+                        </div>
+                        <span id="difficultyValue" style="color: #f7931a; font-weight: bold;">简单</span>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <span class="setting-label">挖矿速度:</span>
+                        <div class="speed-options">
+                            <button class="speed-btn active" onclick="setSpeed(1, this)">慢速</button>
+                            <button class="speed-btn" onclick="setSpeed(10, this)">中速</button>
+                            <button class="speed-btn" onclick="setSpeed(100, this)">快速</button>
+                            <button class="speed-btn" onclick="setSpeed(1000, this)">极速</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📖 挖矿原理</h2>
+            <div class="principle-steps">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>准备区块头</h4>
+                    <p>矿工将 Version、PrevHash、MerkleRoot、Timestamp、Bits 和 Nonce 组合成 80 字节的区块头。</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>计算哈希</h4>
+                    <p>对区块头进行双 SHA256 哈希计算，得到 256 位的哈希值。</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>验证难度</h4>
+                    <p>将哈希值与目标值比较。如果 hash < target，则找到有效区块！否则增加 Nonce 重试。</p>
+                </div>
+            </div>
+            
+            <div class="hint-box" style="margin-top: 30px;">
+                <strong>💡 真实情况：</strong><br>
+                当前比特币网络难度极高，专业 ASIC 矿机每秒可进行数十万亿次哈希计算。
+                这个模拟器使用大幅降低的难度，让你能在浏览器中体验挖矿过程。
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>💻 代码实现</h2>
+            
+            <div class="code-block">
+                <code>
+<span class="keyword">import</span> hashlib
+<span class="keyword">import</span> struct
+<span class="keyword">import</span> random
+
+<span class="keyword">class</span> <span class="function">Miner</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, block_header):
+        self.block_header = block_header
+        self.nonce = <span class="number">0</span>
+        
+    <span class="keyword">def</span> <span class="function">mine</span>(self, target):
+        <span class="string">"""挖矿主循环"""</span>
+        <span class="keyword">while</span> True:
+            <span class="comment"># 将 nonce 放入区块头</span>
+            header_with_nonce = self.block_header + struct.pack(<span class="string">'<I'</span>, self.nonce)
+            
+            <span class="comment"># 计算双 SHA256</span>
+            hash1 = hashlib.sha256(header_with_nonce).digest()
+            block_hash = hashlib.sha256(hash1).digest()
+            
+            <span class="comment"># 检查是否满足难度目标</span>
+            <span class="keyword">if</span> <span class="function">int</span>.from_bytes(block_hash, <span class="string">'big'</span>) < target:
+                <span class="keyword">return</span> {
+                    <span class="string">'nonce'</span>: self.nonce,
+                    <span class="string">'hash'</span>: block_hash[::-<span class="number">1</span>].hex()
+                }
+            
+            <span class="comment"># 尝试下一个 nonce</span>
+            self.nonce += <span class="number">1</span>
+            
+            <span class="comment"># 如果所有 nonce 都试过，修改时间戳或其他字段</span>
+            <span class="keyword">if</span> self.nonce > <span class="number">0xFFFFFFFF</span>:
+                <span class="keyword">raise</span> Exception(<span class="string">"所有 nonce 已尝试完毕"</span>)
+
+<span class="comment"># 使用示例</span>
+miner = Miner(block_header_bytes)
+result = miner.mine(target_value)
+<span class="function">print</span>(<span class="string">f"找到区块! Nonce: {result['nonce']}"</span>)
+<span class="function">print</span>(<span class="string">f"区块哈希: {result['hash']}"</span>)
+                </code>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 挖矿状态
+        let isMining = false;
+        let nonce = 2083236893;
+        let tries = 0;
+        let startTime = null;
+        let miningInterval = null;
+        let speed = 1; // 每次尝试的次数
+        let targetDifficulty = 30; // 难度值 (1-100)
+        
+        // 目标值（根据难度计算）
+        function getTarget(difficulty) {
+            // 简化：难度 1 = 最大目标值，难度 100 = 最小目标值
+            // 前导零数量
+            const leadingZeros = Math.floor((difficulty / 100) * 8);
+            return '0'.repeat(leadingZeros);
+        }
+        
+        // 生成模拟的区块哈希
+        function generateMockHash(nonce) {
+            const hash = [];
+            for (let i = 0; i < 64; i++) {
+                hash.push(Math.floor(Math.random() * 16).toString(16));
+            }
+            return hash.join('');
+        }
+        
+        // 检查哈希是否满足目标
+        function checkHash(hash, targetPrefix) {
+            return hash.startsWith(targetPrefix);
+        }
+        
+        // 开始/停止挖矿
+        function toggleMining() {
+            const btn = document.getElementById('startBtn');
+            
+            if (isMining) {
+                stopMining();
+                btn.textContent = '继续挖矿';
+                btn.className = 'btn btn-start';
+            } else {
+                startMining();
+                btn.textContent = '暂停挖矿';
+                btn.className = 'btn btn-stop';
+            }
+        }
+        
+        function startMining() {
+            isMining = true;
+            startTime = Date.now();
+            document.getElementById('statStatus').textContent = '⛏️ 挖矿中';
+            document.getElementById('nonceIndicator').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            // 清空之前的哈希显示
+            const hashDisplay = document.getElementById('hashDisplay');
+            hashDisplay.className = 'hash-value checking';
+            
+            const targetPrefix = getTarget(targetDifficulty);
+            
+            miningInterval = setInterval(() => {
+                // 根据速度尝试多个 nonce
+                for (let i = 0; i < speed; i++) {
+                    nonce++;
+                    tries++;
+                    
+                    const hash = generateMockHash(nonce);
+                    
+                    // 检查是否满足难度目标
+                    if (checkHash(hash, targetPrefix) && Math.random() > 0.95) {
+                        foundBlock(hash);
+                        return;
+                    }
+                }
+                
+                updateDisplay();
+            }, 50);
+        }
+        
+        function stopMining() {
+            isMining = false;
+            clearInterval(miningInterval);
+            document.getElementById('statStatus').textContent = '⏸️ 暂停';
+            document.getElementById('nonceIndicator').style.display = 'none';
+        }
+        
+        function resetMining() {
+            stopMining();
+            nonce = 2083236893;
+            tries = 0;
+            document.getElementById('startBtn').textContent = '开始挖矿';
+            document.getElementById('startBtn').className = 'btn btn-start';
+            document.getElementById('statNonce').textContent = '0';
+            document.getElementById('statTries').textContent = '0';
+            document.getElementById('statHps').textContent = '0';
+            document.getElementById('statStatus').textContent = '⏹️ 停止';
+            document.getElementById('nonceDisplay').textContent = '2083236893';
+            document.getElementById('hashDisplay').textContent = '点击"开始挖矿"开始计算...';
+            document.getElementById('hashDisplay').className = 'hash-value calculating';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        
+        function foundBlock(hash) {
+            stopMining();
+            document.getElementById('statStatus').textContent = '✅ 成功！';
+            document.getElementById('statStatus').classList.add('success');
+            document.getElementById('nonceIndicator').style.display = 'none';
+            
+            const hashDisplay = document.getElementById('hashDisplay');
+            hashDisplay.textContent = hash;
+            hashDisplay.className = 'hash-value success';
+            
+            document.getElementById('successMessage').style.display = 'block';
+            document.getElementById('startBtn').textContent = '开始新挖矿';
+            document.getElementById('startBtn').className = 'btn btn-start';
+            
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('statNonce').textContent = nonce.toLocaleString();
+            document.getElementById('statTries').textContent = tries.toLocaleString();
+            document.getElementById('nonceDisplay').textContent = nonce.toLocaleString();
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const hps = elapsed > 0 ? Math.floor(tries / elapsed) : 0;
+            document.getElementById('statHps').textContent = hps.toLocaleString();
+            
+            // 更新哈希显示（非成功状态下）
+            if (isMining) {
+                const hash = generateMockHash(nonce);
+                document.getElementById('hashDisplay').textContent = hash;
+            }
+        }
+        
+        // 更新难度
+        function updateDifficulty(value) {
+            targetDifficulty = value;
+            const label = document.getElementById('difficultyValue');
+            const targetLine = document.getElementById('targetLine');
+            
+            // 更新目标线位置
+            targetLine.style.width = value + '%';
+            
+            if (value < 20) {
+                label.textContent = '超简单';
+            } else if (value < 40) {
+                label.textContent = '简单';
+            } else if (value < 60) {
+                label.textContent = '中等';
+            } else if (value < 80) {
+                label.textContent = '困难';
+            } else {
+                label.textContent = '极难';
+            }
+        }
+        
+        // 设置挖矿速度
+        function setSpeed(newSpeed, btn) {
+            speed = newSpeed;
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        
+        // 初始化
+        updateDifficulty(30);
+    </script>
+</body>
+</html>

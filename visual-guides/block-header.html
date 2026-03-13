@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区块头结构 - 比特币区块解析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #f7931a;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card h2 {
+            color: #4fbdba;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        /* 区块头可视化 */
+        .block-viz {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .field-item {
+            display: flex;
+            align-items: stretch;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .field-item:hover, .field-item.active {
+            border-color: #f7931a;
+            transform: translateX(10px);
+        }
+        
+        .field-color {
+            width: 6px;
+        }
+        
+        .field-content {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .field-info {
+            flex: 1;
+        }
+        
+        .field-name {
+            font-weight: bold;
+            color: #eaeaea;
+            margin-bottom: 4px;
+        }
+        
+        .field-desc {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .field-size {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #4fbdba;
+        }
+        
+        .field-bytes {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* 详情面板 */
+        .detail-content h3 {
+            color: #f7931a;
+            margin-bottom: 15px;
+        }
+        
+        .detail-content p {
+            line-height: 1.8;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+        
+        .detail-content ul {
+            margin-left: 20px;
+            color: #aaa;
+            line-height: 2;
+        }
+        
+        .detail-content strong {
+            color: #4fbdba;
+        }
+        
+        /* 字节网格 */
+        .byte-grid-section {
+            margin-top: 30px;
+        }
+        
+        .byte-grid {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 4px;
+            margin-top: 20px;
+        }
+        
+        .byte-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .byte-cell:hover {
+            transform: scale(1.3);
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .byte-cell::after {
+            content: attr(data-index);
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: #666;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .byte-cell:hover::after {
+            opacity: 1;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        
+        /* 代码示例 */
+        .code-section {
+            margin-top: 30px;
+        }
+        
+        .code-block {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .number { color: #79c0ff; }
+        .comment { color: #8b949e; }
+        .function { color: #d2a8ff; }
+        
+        .hint-box {
+            background: rgba(247, 147, 26, 0.1);
+            border-left: 4px solid #f7931a;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 20px 0;
+        }
+        
+        /* 创世区块示例 */
+        .genesis-section {
+            margin-top: 30px;
+        }
+        
+        .hex-viewer {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+        
+        .hex-line {
+            display: flex;
+            gap: 20px;
+            padding: 4px 0;
+        }
+        
+        .hex-offset {
+            color: #666;
+            min-width: 50px;
+        }
+        
+        .hex-data {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .hex-byte {
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .hex-byte:hover {
+            background: rgba(247, 147, 26, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+        
+        <h1>📦 区块头结构</h1>
+        <p class="subtitle">比特币区块头固定 80 字节，包含 6 个字段</p>
+        
+        <div class="main-grid">
+            <div class="card">
+                <h2>🔍 点击字段查看详情</h2>
+                <div class="block-viz" id="blockViz">
+                    <!-- 由 JS 生成 -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="detail-content" id="detailPanel">
+                    <h3>选择一个字段查看详情</h3>
+                    <p>点击左侧的字段，了解它的作用、大小、格式和解析方法。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card byte-grid-section">
+            <h2>🎨 80 字节可视化</h2>
+            <p style="color: #888; margin-bottom: 15px;">每个方块代表一个字节，鼠标悬停查看索引</p>
+            <div class="byte-grid" id="byteGrid"></div>
+            <div class="legend" id="legend"></div>
+        </div>
+        
+        <div class="card genesis-section">
+            <h2>📜 创世区块头示例（原始十六进制）</h2>
+            <div class="hint-box">
+                <strong>提示：</strong>这是比特币创世区块的 80 字节区块头数据。你可以尝试解析它来验证你的代码！
+            </div>
+            <div class="hex-viewer" id="hexViewer"></div>
+        </div>
+        
+        <div class="card code-section">
+            <h2>💻 Python 解析代码示例</h2>
+            <div class="code-block">
+                <code>
+<span class="keyword">import</span> struct
+
+<span class="keyword">class</span> <span class="function">BlockHeader</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, raw_bytes):
+        <span class="comment"># 确保输入是 80 字节</span>
+        <span class="keyword">if</span> <span class="function">len</span>(raw_bytes) != <span class="number">80</span>:
+            <span class="keyword">raise</span> ValueError(<span class="string">"区块头必须是 80 字节"</span>)
+        
+        <span class="comment"># 解析各个字段（小端序）</span>
+        self.version = struct.unpack(<span class="string">'<I'</span>, raw_bytes[<span class="number">0</span>:<span class="number">4</span>])[<span class="number">0</span>]
+        self.prev_hash = raw_bytes[<span class="number">4</span>:<span class="number">36</span>][::-<span class="number">1</span>]  <span class="comment"># 翻转成大端序显示</span>
+        self.merkle_root = raw_bytes[<span class="number">36</span>:<span class="number">68</span>][::-<span class="number">1</span>]
+        self.timestamp = struct.unpack(<span class="string">'<I'</span>, raw_bytes[<span class="number">68</span>:<span class="number">72</span>])[<span class="number">0</span>]
+        self.bits = raw_bytes[<span class="number">72</span>:<span class="number">76</span>]
+        self.nonce = struct.unpack(<span class="string">'<I'</span>, raw_bytes[<span class="number">76</span>:<span class="number">80</span>])[<span class="number">0</span>]
+    
+    <span class="keyword">def</span> <span class="function">__repr__</span>(self):
+        <span class="keyword">return</span> <span class="string">f"BlockHeader(version={self.version}, timestamp={self.timestamp}, nonce={self.nonce})"</span>
+                </code>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 区块头字段定义
+        const fields = [
+            {
+                name: 'Version',
+                size: 4,
+                color: '#4fbdba',
+                desc: '区块版本号',
+                detail: {
+                    title: '📝 Version - 区块版本号',
+                    content: `
+                        <p>Version 是一个 4 字节整数，标识这个区块遵循的规则版本。</p>
+                        <p><strong>常见版本值：</strong></p>
+                        <ul>
+                            <li><code>0x00000001</code> - 创世区块使用的版本</li>
+                            <li><code>0x20000000</code> - 支持 BIP34、BIP66、BIP65</li>
+                            <li><code>0x20000004</code> - 支持 CSV (BIP68/112/113)</li>
+                        </ul>
+                        <p><strong>解析方法：</strong>读取 4 字节，按小端序解析为有符号整数。</p>
+                    `,
+                    code: `version = struct.unpack('<I', raw_bytes[0:4])[0]`
+                }
+            },
+            {
+                name: 'PrevHash',
+                size: 32,
+                color: '#e94560',
+                desc: '前一个区块的哈希',
+                detail: {
+                    title: '🔗 PrevHash - 前一个区块哈希',
+                    content: `
+                        <p>前一个区块头的双 SHA256 哈希，形成区块链的"链条"结构。</p>
+                        <p><strong>关键特性：</strong></p>
+                        <ul>
+                            <li>确保区块按顺序链接，防止篡改</li>
+                            <li>创世区块的 PrevHash 是全 0</li>
+                            <li>存储时是小端序，显示时通常转为大端序</li>
+                        </ul>
+                        <p><strong>大小：</strong>32 字节（256 位）</p>
+                    `,
+                    code: `# 存储是小端序，显示时翻转成大端序
+prev_hash = raw_bytes[4:36][::-1].hex()`
+                }
+            },
+            {
+                name: 'MerkleRoot',
+                size: 32,
+                color: '#f7931a',
+                desc: '交易默克尔树根',
+                detail: {
+                    title: '🌳 MerkleRoot - 交易默克尔根',
+                    content: `
+                        <p>区块中所有交易的默克尔树的根哈希，是交易的"指纹"。</p>
+                        <p><strong>作用：</strong></p>
+                        <ul>
+                            <li>验证区块中是否包含某笔交易</li>
+                            <li>轻节点（SPV）只需下载区块头即可验证交易</li>
+                            <li>任何交易修改都会改变默克尔根</li>
+                        </ul>
+                        <p><strong>注意：</strong>存储时是小端序！</p>
+                    `,
+                    code: `# 和 PrevHash 一样，存储是小端序
+merkle_root = raw_bytes[36:68][::-1].hex()`
+                }
+            },
+            {
+                name: 'Timestamp',
+                size: 4,
+                color: '#a855f7',
+                desc: '区块创建时间戳',
+                detail: {
+                    title: '⏰ Timestamp - 时间戳',
+                    content: `
+                        <p>区块创建时间的 Unix 时间戳，从 1970-01-01 00:00:00 UTC 开始的秒数。</p>
+                        <p><strong>创世区块时间戳：</strong>1231006505</p>
+                        <p>对应北京时间：<strong>2009-01-04 02:15:05</strong></p>
+                        <p><strong>注意：</strong>矿工可以在一定范围内调整时间戳（不超过网络时间 2 小时）。</p>
+                    `,
+                    code: `timestamp = struct.unpack('<I', raw_bytes[68:72])[0]
+from datetime import datetime
+dt = datetime.fromtimestamp(timestamp)`
+                }
+            },
+            {
+                name: 'Bits',
+                size: 4,
+                color: '#22c55e',
+                desc: '难度目标（压缩格式）',
+                detail: {
+                    title: '⛰️ Bits - 难度目标',
+                    content: `
+                        <p>紧凑格式的难度目标，用于工作量证明验证。</p>
+                        <p><strong>格式：</strong>[系数 3 字节][指数 1 字节]</p>
+                        <p><strong>计算公式：</strong>目标值 = 系数 × 256^(指数-3)</p>
+                        <p><strong>创世区块 Bits：</strong><code>0x1d00ffff</code></p>
+                        <ul>
+                            <li>系数：0x00ffff（3 字节）</li>
+                            <li>指数：0x1d = 29（1 字节）</li>
+                        </ul>
+                    `,
+                    code: `bits = raw_bytes[72:76]
+exponent = bits[-1]
+coefficient = int.from_bytes(bits[:3], 'little')
+target = coefficient * (256 ** (exponent - 3))`
+                }
+            },
+            {
+                name: 'Nonce',
+                size: 4,
+                color: '#3b82f6',
+                desc: '随机数',
+                detail: {
+                    title: '🎲 Nonce - 随机数',
+                    content: `
+                        <p>矿工可自由调整的 4 字节数字，用于寻找满足难度目标的哈希。</p>
+                        <p><strong>范围：</strong>0 到 4,294,967,295 (2³²-1)</p>
+                        <p><strong>挖矿过程：</strong></p>
+                        <ul>
+                            <li>尝试不同的 Nonce 值</li>
+                            <li>计算区块头的双 SHA256 哈希</li>
+                            <li>检查结果是否小于目标值</li>
+                        </ul>
+                        <p>如果所有 Nonce 都试过还没找到，矿工需要修改区块内容（如修改时间戳）继续尝试。</p>
+                    `,
+                    code: `nonce = struct.unpack('<I', raw_bytes[76:80])[0]`
+                }
+            }
+        ];
+        
+        // 创世区块数据（80 字节）
+        const genesisBlock = '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c';
+        
+        // 初始化页面
+        function init() {
+            renderBlockViz();
+            renderByteGrid();
+            renderLegend();
+            renderHexViewer();
+            
+            // 默认选中第一个字段
+            selectField(0);
+        }
+        
+        // 渲染区块可视化
+        function renderBlockViz() {
+            const container = document.getElementById('blockViz');
+            let offset = 0;
+            
+            fields.forEach((field, index) => {
+                const item = document.createElement('div');
+                item.className = 'field-item';
+                item.dataset.index = index;
+                item.onclick = () => selectField(index);
+                
+                item.innerHTML = `
+                    <div class="field-color" style="background: ${field.color}"></div>
+                    <div class="field-content">
+                        <div class="field-info">
+                            <div class="field-name">${field.name}</div>
+                            <div class="field-desc">${field.desc}</div>
+                            <div class="field-bytes">字节偏移: ${offset} - ${offset + field.size - 1}</div>
+                        </div>
+                        <div class="field-size">${field.size} bytes</div>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+                offset += field.size;
+            });
+        }
+        
+        // 渲染字节网格
+        function renderByteGrid() {
+            const grid = document.getElementById('byteGrid');
+            let offset = 0;
+            
+            fields.forEach(field => {
+                for (let i = 0; i < field.size; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'byte-cell';
+                    cell.style.background = field.color;
+                    cell.dataset.index = offset;
+                    cell.dataset.field = field.name;
+                    cell.title = `${field.name} [${i}]`;
+                    
+                    cell.addEventListener('mouseenter', () => {
+                        highlightField(field.name);
+                    });
+                    
+                    cell.addEventListener('mouseleave', () => {
+                        removeHighlight();
+                    });
+                    
+                    grid.appendChild(cell);
+                    offset++;
+                }
+            });
+        }
+        
+        // 渲染图例
+        function renderLegend() {
+            const legend = document.getElementById('legend');
+            
+            fields.forEach(field => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <div class="legend-color" style="background: ${field.color}"></div>
+                    <span>${field.name} (${field.size}B)</span>
+                `;
+                legend.appendChild(item);
+            });
+        }
+        
+        // 渲染十六进制查看器
+        function renderHexViewer() {
+            const viewer = document.getElementById('hexViewer');
+            const bytes = genesisBlock.match(/.{2}/g);
+            
+            // 按字段分组颜色
+            const fieldColors = {};
+            let offset = 0;
+            fields.forEach(field => {
+                for (let i = 0; i < field.size; i++) {
+                    fieldColors[offset + i] = field.color;
+                }
+                offset += field.size;
+            });
+            
+            // 每行 16 字节
+            for (let row = 0; row < 5; row++) {
+                const line = document.createElement('div');
+                line.className = 'hex-line';
+                
+                const offset = document.createElement('span');
+                offset.className = 'hex-offset';
+                offset.textContent = (row * 16).toString(16).padStart(4, '0');
+                
+                const data = document.createElement('div');
+                data.className = 'hex-data';
+                
+                for (let col = 0; col < 16 && (row * 16 + col) < 80; col++) {
+                    const idx = row * 16 + col;
+                    const byteSpan = document.createElement('span');
+                    byteSpan.className = 'hex-byte';
+                    byteSpan.textContent = bytes[idx];
+                    byteSpan.style.background = fieldColors[idx] + '30';
+                    byteSpan.style.color = fieldColors[idx];
+                    byteSpan.title = `${Object.keys(fieldColors).find(k => fieldColors[k] === fieldColors[idx] && k >= idx)}`;
+                    data.appendChild(byteSpan);
+                }
+                
+                line.appendChild(offset);
+                line.appendChild(data);
+                viewer.appendChild(line);
+            }
+        }
+        
+        // 选择字段
+        function selectField(index) {
+            document.querySelectorAll('.field-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-index="${index}"]`).classList.add('active');
+            
+            const field = fields[index];
+            const panel = document.getElementById('detailPanel');
+            
+            panel.innerHTML = `
+                <div class="detail-content">
+                    <h3>${field.detail.title}</h3>
+                    ${field.detail.content}
+                    <div class="code-block" style="margin-top: 20px;">
+                        <code style="color: #a5d6ff;">${field.detail.code}</code>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 高亮字段
+        function highlightField(fieldName) {
+            document.querySelectorAll('.field-item').forEach(item => {
+                if (item.querySelector('.field-name').textContent === fieldName) {
+                    item.style.opacity = '1';
+                } else {
+                    item.style.opacity = '0.3';
+                }
+            });
+        }
+        
+        // 移除高亮
+        function removeHighlight() {
+            document.querySelectorAll('.field-item').forEach(item => {
+                item.style.opacity = '1';
+            });
+        }
+        
+        // 初始化
+        init();
+    </script>
+</body>
+</html>
