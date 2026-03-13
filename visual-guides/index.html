@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>比特币区块解析 - 交互式概念指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #f7931a;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .intro {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .intro h2 {
+            color: #4fbdba;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .intro p {
+            color: #aaa;
+            line-height: 1.8;
+        }
+        
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .concept-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: #f7931a;
+            box-shadow: 0 10px 40px rgba(247, 147, 26, 0.2);
+        }
+        
+        .concept-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .concept-card h3 {
+            color: #f7931a;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+        
+        .concept-card p {
+            color: #888;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        .concept-card .tag {
+            display: inline-block;
+            background: #0f3460;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 15px;
+            color: #4fbdba;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔶 比特币区块解析</h1>
+        <p class="subtitle">交互式概念学习指南 - 点击卡片开始学习</p>
+        
+        <div class="intro">
+            <h2>📚 学习路径</h2>
+            <p>
+                这个项目要求你实现一个比特币区块头解析器。理解以下概念是完成任务的关键。
+                每个页面都包含<strong>理论解释</strong> + <strong>交互式演示</strong> + <strong>代码示例</strong>，
+                帮助你从零开始掌握比特币底层协议。
+            </p>
+        </div>
+        
+        <div class="cards-grid">
+            <a href="block-header.html" class="concept-card">
+                <div class="icon">📦</div>
+                <h3>区块头结构</h3>
+                <p>理解比特币区块头的 80 字节结构，包括 Version、PrevHash、MerkleRoot 等 6 个字段的含义和作用。</p>
+                <span class="tag">基础 · 必学</span>
+            </a>
+            
+            <a href="endianness.html" class="concept-card">
+                <div class="icon">🔄</div>
+                <h3>字节序转换</h3>
+                <p>掌握大端序和小端序的区别，学会在比特币数据解析中进行字节序转换。</p>
+                <span class="tag">基础 · 必学</span>
+            </a>
+            
+            <a href="sha256.html" class="concept-card">
+                <div class="icon">🔐</div>
+                <h3>双 SHA256 哈希</h3>
+                <p>理解比特币为什么使用双 SHA256，亲手计算数据的哈希值，验证区块哈希。</p>
+                <span class="tag">密码学 · 核心</span>
+            </a>
+            
+            <a href="difficulty.html" class="concept-card">
+                <div class="icon">⛰️</div>
+                <h3>难度目标</h3>
+                <p>理解 Bits 字段的含义，学会 bits_to_target 转换，掌握难度目标如何控制出块速度。</p>
+                <span class="tag">共识机制 · 核心</span>
+            </a>
+            
+            <a href="mining.html" class="concept-card">
+                <div class="icon">⛏️</div>
+                <h3>PoW 挖矿模拟</h3>
+                <p>体验工作量证明过程，理解矿工如何通过调整 Nonce 寻找满足难度目标的哈希。</p>
+                <span class="tag">共识机制 · 实践</span>
+            </a>
+            
+            <a href="merkle-tree.html" class="concept-card">
+                <div class="icon">🌳</div>
+                <h3>默克尔树</h3>
+                <p>理解默克尔树的构建过程，掌握如何验证交易是否属于某个区块。</p>
+                <span class="tag">数据结构 · 进阶</span>
+            </a>
+        </div>
+        
+        <footer>
+            <p>比特币区块头解析器项目 · 交互式学习指南</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">回到项目根目录 → <a href="../README.md" style="color: #f7931a;">README.md</a></p>
+        </footer>
+    </div>
+</body>
+</html>
