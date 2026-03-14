@@ -2,79 +2,63 @@
 
 ## 🎯 当前状态
 
-**当前步骤**: 步骤1 ✅ 已完成  
-**下一步**: 步骤2 ⏳ 待开始  
-**日期**: 2026-03-13
+**当前步骤**: 步骤2 🟡 进行中
+**下一步**: 完成 MerkleRoot 字段赋值
+**日期**: 2026-03-14
 
 ---
 
-## 📝 已完成（步骤1）
+## 📝 已完成（步骤1 + 步骤2 部分）
 
+**步骤1** ✅
 - [x] 创建 `go.mod`
 - [x] 编写 `main.go` 输出 "Hello, Bitcoin!"
 - [x] 验证能编译运行
 
+**步骤2** 🟡 进行中
+- [x] 创建 `block/header.go` 文件
+- [x] 定义 `Header` 结构体（6个字段）
+- [x] 学会导入本地包 `blockparser/block`
+- [x] 学会用 `hex.DecodeString` 解码十六进制字符串
+- [ ] 把 `[]byte` 转成 `[32]byte` 并赋值给结构体字段
+
 ---
 
-## 🚀 下一步（步骤2）：定义 BlockHeader 结构体
+## 🚀 下一步：完成哈希字段赋值
 
-### 任务概述
-定义表示比特币区块头的 Go 结构体，确定每个字段的类型。
+### 当前位置
+你已经学会了用 `hex.DecodeString` 把十六进制字符串转成 `[]byte`。
 
-### 预计时间
-30 分钟
+### 下一个任务
+把 `[]byte` 转成 `[32]byte` 并赋值给结构体。
 
-### 具体任务
-
-#### 1. 创建 block/header.go 文件
-```bash
-mkdir block
-touch block/header.go
-```
-
-#### 2. 定义 BlockHeader 结构体
+### 代码提示
 ```go
-package block
-
-type BlockHeader struct {
-    Version    uint32
-    PrevHash   [32]byte    // 注意：这是数组不是切片！
-    MerkleRoot [32]byte
-    Timestamp  uint32
-    Bits       [4]byte     // 或者 uint32，你自己决定
-    Nonce      uint32
+// 1. 解码十六进制字符串
+data, err := hex.DecodeString("4a5e1e4b...")
+if err != nil {
+    fmt.Println("Error:", err)
+    return
 }
-```
 
-#### 3. 关键思考点
-- 为什么 `PrevHash` 用 `[32]byte` 而不是 `[]byte`？
-  - 提示：数组长度固定，切片长度可变
-  - 哈希长度是固定的 32 字节
-- `Bits` 用 `[4]byte` 还是 `uint32` 更好？
-  - 提示：考虑后续计算难度目标的方式
+// 2. 把 []byte 转成 [32]byte
+var hash [32]byte
+copy(hash[:], data)  // hash[:] 把数组转成切片
 
-#### 4. 验证代码能编译
-```bash
-go build ./...
-# 应该没有错误
+// 3. 赋值给结构体
+h := block.Header{
+    Version:    1,
+    MerkleRoot: hash,  // 现在可以赋值了
+    Timestamp:  1231006505,
+    Bits:       0x1d00ffff,
+    Nonce:      2083236893,
+}
 ```
 
 ### 完成标志
-- [ ] `BlockHeader` 结构体定义完成
-- [ ] 能创建实例并打印
-- [ ] 代码能编译通过
-
-### 示例验证代码
-```go
-func main() {
-    header := BlockHeader{
-        Version:   1,
-        Timestamp: 1231006505,
-        Nonce:     2083236893,
-    }
-    fmt.Printf("%+v\n", header)
-}
-```
+- [ ] MerkleRoot 能正确赋值并打印
+- [ ] PrevHash 也用同样方式赋值（全是 0 的哈希）
+- [ ] 整个创世区块 Header 能完整打印
 
 ---
 

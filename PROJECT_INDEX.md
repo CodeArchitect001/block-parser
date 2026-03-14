@@ -2,7 +2,7 @@
 
 > 按需加载记忆文件，避免上下文消耗
 
-**当前状态**: 步骤1完成 | **分支**: `feature/go-implementation` | **日期**: 2026-03-13
+**当前状态**: 步骤2进行中 | **分支**: `feature/go-implementation` | **日期**: 2026-03-14
 
 ---
 
@@ -32,15 +32,19 @@
 
 ## 🚀 快速开始（现在该做什么）
 
-**当前步骤**: 步骤1 ✅ 已完成  
-**下一步**: [步骤2 - 定义 BlockHeader 结构体](./memory/07-next-steps.md)
+**当前步骤**: 步骤2 🟡 进行中
+**下一步**: [完成哈希字段赋值](./memory/07-next-steps.md)
 
 ### 今天已完成的
-- [x] 创建 `go.mod`
-- [x] 编写 `main.go` 输出 "Hello, Bitcoin!"
-- [x] 验证能编译运行
+- [x] 创建 `block/header.go`
+- [x] 定义 `Header` 结构体
+- [x] 学会导入本地包
+- [x] 学会用 `hex.DecodeString` 解码
 
 ### 明天要做的
+- [ ] 用 `copy` 把 `[]byte` 转成 `[32]byte`
+- [ ] 完成 MerkleRoot 和 PrevHash 赋值
+
 查看 [memory/07-next-steps.md](./memory/07-next-steps.md) 了解详细任务
 
 ---
