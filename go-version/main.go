@@ -1,7 +1,11 @@
 package main
 
 import "fmt"
+import "blockparser/block"
 
 func main() {
-	fmt.Println("Hello, Bitcoin!")
+	h := block.Header{
+		Version:    1,
+	}
+	fmt.Printf("Block Header: %+v\n", h)
 }
